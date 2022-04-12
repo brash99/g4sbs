@@ -72,7 +72,7 @@ G4SBSHArmBuilder::G4SBSHArmBuilder(G4SBSDetectorConstruction *dc):G4SBSComponent
   fRichSnoutExtension = 0;
   
 
-  fGEnRP_analyzer_option = 1; //0=none+no beamline PR; 1=none(default), 2=Cu+Gla(para), 3=Cu+Gla(perp), 4=Cu+CGEN
+  fGEnRP_analyzer_option = 0; //0=steel+no PR detectors; 1=none(default), 2=steel+Gla(para), 3=steel+Gla(perp), 4=steel+CGEN
 
   f48D48depth = 1219.2*mm;
   f48D48width = 2324.1*mm;
@@ -162,7 +162,7 @@ void G4SBSHArmBuilder::BuildComponent(G4LogicalVolume *worldlog){
 
   // Build CDET (as needed)
   //if( (exptype == G4SBS::kGMN || exptype == G4SBS::kGEnRP ) && (tgttype==kLH2 || tgttype==kLD2)){
-  if( exptype == G4SBS::kGMN || exptype == G4SBS::kGEnRP ){
+  if( exptype == G4SBS::kGMN || exptype == G4SBS::kGEnRP || exptype == G4SBS::kGEpBB ){
     //plugging in CDET for GMn  
     G4double depth_HCal_shield = 7.62*cm; //3 inches
     G4double depth_CH2 = 20.0*cm; //This goes directly in front of CDET:
@@ -239,7 +239,7 @@ void G4SBSHArmBuilder::BuildComponent(G4LogicalVolume *worldlog){
   }
 
   // Build GEn-RP polarimeter
-  if( exptype == G4SBS::kGEnRP ) 
+  if( exptype == G4SBS::kGEnRP || exptype == G4SBS::kGEpBB ) 
     MakePolarimeterGEnRP( worldlog );
 }
 
@@ -778,7 +778,7 @@ void G4SBSHArmBuilder::MakeSBSFieldClamps( G4LogicalVolume *motherlog ){
     G4LogicalVolume *frontclampLog=new G4LogicalVolume(frontclampun, GetMaterial("Fer"), "frontclampLog", 0, 0, 0);
 
     G4LogicalVolume *frontextfaceLog= NULL;
-    if( fDetCon->fExpType == G4SBS::kGEp || fDetCon->fExpType == G4SBS::kGMN || fDetCon->fExpType == G4SBS::kGEN || fDetCon->fExpType == G4SBS::kGEnRP ){
+    if( fDetCon->fExpType == G4SBS::kGEp || fDetCon->fExpType == G4SBS::kGMN || fDetCon->fExpType == G4SBS::kGEN || fDetCon->fExpType == G4SBS::kGEnRP || fDetCon->fExpType == G4SBS::kGEpBB ){
       frontextfaceLog = new G4LogicalVolume(extface_whole, GetMaterial("Fer"), "frontextfaceLog", 0, 0, 0);
     } else {
       frontextfaceLog = new G4LogicalVolume(extface, GetMaterial("Fer"), "frontextfaceLog", 0, 0, 0);
@@ -4336,7 +4336,7 @@ void G4SBSHArmBuilder::MakePolarimeterGEnRP(G4LogicalVolume *worldlog)
   
   G4ThreeVector cuana_pos = pos + G4ThreeVector( 0.0, 0.0, (cuanadist + cuanadepth/2.0) ); 
   
-  if( fGEnRP_analyzer_option >= 2 ) {
+  if( fGEnRP_analyzer_option == 0 || fGEnRP_analyzer_option >= 2 ) {
     G4Box*           cuanabox  = new G4Box("cuanabox", cuanawidth/2.0, cuanaheight/2.0, cuanadepth/2.0 );
     //G4LogicalVolume* cuanalog  = new G4LogicalVolume(cuanabox, GetMaterial("CH2"), "cuanalog");
     //G4LogicalVolume* cuanalog  = new G4LogicalVolume(cuanabox, GetMaterial("Copper"), "cuanalog");
@@ -4504,6 +4504,10 @@ void G4SBSHArmBuilder::MakePolarimeterGEnRP(G4LogicalVolume *worldlog)
 
   G4RotationMatrix* rot_bs  = new G4RotationMatrix;
   rot_bs->rotateY( 90.0 *deg );
+
+  G4RotationMatrix* rot_fs  = new G4RotationMatrix;
+  rot_fs->rotateY( -90.0 *deg );
+  
   
   G4ThreeVector prgem_posbs = pos + G4ThreeVector( prgem_perpdist, 0.0, (actanadist + actanadepth/2.) );
 
@@ -4514,14 +4518,11 @@ void G4SBSHArmBuilder::MakePolarimeterGEnRP(G4LogicalVolume *worldlog)
       gemh[j] = 200.0*cm;
     }
     trackerbuilder.BuildComponent( sbslog, rot_bs, prgem_posbs, 2, gemz, gemw, gemh, G4String("Harm/PRPolGEMBeamSide"));
-  }
+ 
 
   // -----------------------------------------------------------------------
   // far side gem detectors
 
-  G4RotationMatrix* rot_fs  = new G4RotationMatrix;
-  rot_fs->rotateY( -90.0 *deg );
-  
   G4ThreeVector prgem_posfs = pos + G4ThreeVector( -prgem_perpdist, 0.0, (actanadist + actanadepth/2.0) );
   
   for( int j = 0; j < 2; j++ ){
@@ -4530,6 +4531,7 @@ void G4SBSHArmBuilder::MakePolarimeterGEnRP(G4LogicalVolume *worldlog)
     gemh[j] = 200.0*cm;
   }
   trackerbuilder.BuildComponent( sbslog, rot_fs, prgem_posfs, 2, gemz, gemw, gemh, G4String("Harm/PRPolGEMFarSide"));
+  }
 
   // ----------------------------------------------------------------------------------------------------------------------
   // Make PR Polarimeter Hodoscopes (1 each)
@@ -4585,7 +4587,6 @@ void G4SBSHArmBuilder::MakePolarimeterGEnRP(G4LogicalVolume *worldlog)
       double ybar = (((double)(i-nprbars/2.0) * prbarheight) + prbarheight/2.0);
       new G4PVPlacement( 0, G4ThreeVector(0, ybar, 0), prbarbslog, "prbarbsphys", prscintbslog, false, i );
     }
-  }
 
   // -----------------------------------------------------------------------
   // far side scintillator detectors
@@ -4626,7 +4627,7 @@ void G4SBSHArmBuilder::MakePolarimeterGEnRP(G4LogicalVolume *worldlog)
     double ybar = (((double)(i-nprbars/2.0) * prbarheight) + prbarheight/2.0);
     new G4PVPlacement( 0, G4ThreeVector(0, ybar, 0), prbarfslog, "prbarfsphys", prscintfslog, false, i );
   }
-
+  }
 }
 
 void G4SBSHArmBuilder::MakeNeutronVeto(G4LogicalVolume* worldlog, G4double dist_from_hcal)

@@ -1206,6 +1206,10 @@ void G4SBSMessenger::SetNewValue(G4UIcommand* cmd, G4String newValue){
       fExpType = G4SBS::kGEnRP;
       validcmd = true;
     }
+    if( newValue.compareTo("gepbb") == 0 ){
+      fExpType = G4SBS::kGEpBB;
+      validcmd = true;
+    }
     if( newValue.compareTo("a1n") == 0 ){
       fExpType = G4SBS::kA1n; //"A1n" experiment type for new proposal with both SBS and BigBite in electron mode to detect DIS electrons at high-x: requires some geometry modifications on SBS side, including RICH w/CO2 instead of C4F10 and no aerogel, AND with a non-zero pitch angle for the SBS tracker. Also: HCAL + LAC.
       validcmd = true;

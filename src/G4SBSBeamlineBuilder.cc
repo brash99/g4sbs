@@ -64,6 +64,13 @@ void G4SBSBeamlineBuilder::BuildComponent(G4LogicalVolume *worldlog){
       MakeGEnRPLead(worldlog);
     }
     break;
+  case(G4SBS::kGEpBB):// GEpBB
+    fDetCon->fBeamlineConf = 3;
+    MakeGMnBeamline(worldlog);
+    if(fDetCon->fLeadOption == 1){
+      MakeGMnLead(worldlog);
+    }
+    break;
   case(G4SBS::kGEN):// GEn
     printf("GEn experiment: forcing beamline configuration 2 \n");
     fDetCon->fBeamlineConf = 2;
