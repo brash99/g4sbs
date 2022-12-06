@@ -4,6 +4,8 @@
 #include "G4VModularPhysicsList.hh"
 #include <vector>
 
+//class PolNucleonRotate;
+
 using namespace std;
 
 class G4SBSPhysicsList : public G4VModularPhysicsList 
@@ -34,7 +36,6 @@ private:
   // vector<G4VPhysicsConstructor*> G4SBSHadronicPhysics;
   G4VPhysicsConstructor *G4SBSOpticalPhysics;
   // G4VPhysicsConstructor *G4SBSOpticalPhysics;
-
   // void ConstructParticle();
   //virtual void ConstructProcess();
 
