@@ -2828,17 +2828,17 @@ void G4SBSEventGen::InitializePythia6_Tree(){
 
 void G4SBSEventGen::InitializeSIMC_Tree(){
 
-  TObjArray *FileList = fSIMCChain->GetListOfFiles();
-  TIter next(FileList);
+//   TObjArray *FileList = fSIMCChain->GetListOfFiles();
+//   TIter next(FileList);
 
-  //TChainElement *chEl = 0;
+//   //TChainElement *chEl = 0;
 
-  fSIMCTree = new simc_tree( fSIMCChain );
+//   fSIMCTree = new simc_tree( fSIMCChain );
   
-  if( !fSIMCTree ){
-    G4cout << "Failed to initialize SIMC tree, aborting... " << G4endl;
-    exit(-1);
-  }
+//   if( !fSIMCTree ){
+//     G4cout << "Failed to initialize SIMC tree, aborting... " << G4endl;
+//     exit(-1);
+//   }
 }
 
 void G4SBSEventGen::SetNfoils( int nfoil ){
