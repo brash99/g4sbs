@@ -26,6 +26,12 @@ PolNucleonRotate::PolNucleonRotate( G4int verbose )
     fAyModel[i] = EAyConst;
     fAyFactor[i] = 1.0;
   }
+
+  fAyModel[EppEl]     = EAyLadygin;
+  fAyModel[EppInel]   = EAyAzhgirey;
+  fAyModel[EnpCEEl]   = EAyCE;
+  fAyModel[EnpCEInel] = EAyCE;
+
   fVerbose = verbose;
   ftmin = 0.0;
 
@@ -38,6 +44,7 @@ GetPolarisedRotation(const G4DynamicParticle *primPart,
 		     const G4DynamicParticle *secPart,
 		     const G4DynamicParticle *terPart,
 		     G4bool IsEl ){
+
   // Then modify the azimuthal distribution using the chosen parameterisation
   // of the N + CH analysing power.
   // Already in frame defined by incident particle until GetTrafoToLab later
@@ -46,15 +53,12 @@ GetPolarisedRotation(const G4DynamicParticle *primPart,
     return 0.0;
 
   G4ThreeVector Pol(primPart->GetPolarization());
-  //  Pol.set( 1.0, 0.0, 1.0 );
   *PolNN = Pol;
   
   G4double Pt=sqrt(Pol.x()*Pol.x()+Pol.y()*Pol.y()); //transverse polarisation
 
   if( !Pt ) return 0.0;
-
   //  G4cout << "PolNucleonRotate " << Pol.getX() <<"\t"<< Pol.getX() << "\t" << Pol.getX() << G4endl;   
-
 
   //sin(phi) asymmetry with phi0 being along the transverse polarisation dir.
   G4double phi0 = Pol.phi();

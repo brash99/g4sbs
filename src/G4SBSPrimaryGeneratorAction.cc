@@ -6,6 +6,7 @@
 #include "G4SBSPrimaryGeneratorAction.hh"
 
 #include "G4Event.hh"
+#include "G4RandomTools.hh"
 #include "G4ParticleGun.hh"
 #include "G4ParticleTable.hh"
 #include "G4ParticleDefinition.hh"
@@ -78,6 +79,11 @@ void G4SBSPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
   //evdata = sbsgen->GetEventData();
   fIO->SetEventData(sbsgen->GetEventData());
 
+  // flip a helicity flag on an event-by-event basis
+  double helicity{0};
+  if( G4UniformRand() <=0.5 ) helicity = -1;
+  else helicity = 1;
+  
   if( sbsgen->GetKine() == G4SBS::kPYTHIA6 ){ //PYTHIA6 event:
     G4SBSPythiaOutput Primaries = sbsgen->GetPythiaEvent();
 
@@ -276,13 +282,14 @@ void G4SBSPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
 	
 	// G4cout << "Particle magnetic moment = "
 	//        << particle->GetPDGMagneticMoment()/muB << G4endl;
+
 	
 	G4ThreeVector k_hat(0,0,1.0); // beam polarization unit vector
 	G4ThreeVector n_hat = ((sbsgen->GetNucleonP().unit()).cross(k_hat)).unit();
 	G4ThreeVector t_hat = n_hat.cross( (sbsgen->GetNucleonP().unit()) );
-	G4ThreeVector S_hat = (sbsgen->GetPl())*(sbsgen->GetNucleonP().unit()) + (sbsgen->GetPt())*t_hat;
+	G4ThreeVector S_hat = helicity * (sbsgen->GetPl())*(sbsgen->GetNucleonP().unit()) + (sbsgen->GetPt())*t_hat; // NB helicity
 
-	//	G4cout << "Initial polarization = " << S_hat << G4endl;
+	//G4cout << "Initial polarization = " << helicity << "\t" << S_hat << G4endl;
 	
 	particleGun->SetParticlePolarization( S_hat.unit() );
 
@@ -375,7 +382,7 @@ void G4SBSPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
   //Since the primary generator action is the only class other than the messenger that can talk directly to both the G4SBSIO and the G4SBSEventGen classes,
   //This is the place to set these values:
   fIO->SetTargPol( sbsgen->GetTargPolMagnitude() );
-  fIO->SetBeamPol( sbsgen->GetBeamPolMagnitude() );
+  fIO->SetBeamPol( helicity*sbsgen->GetBeamPolMagnitude() ); // NB helicity
   
   G4ThreeVector targpoldir = sbsgen->GetTargPolDirection();
   G4ThreeVector beampoldir = sbsgen->GetBeamPolDirection();

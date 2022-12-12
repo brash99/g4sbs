@@ -4,11 +4,11 @@
 #include <TStyle.h>
 #include <TCanvas.h>
 
-void genrp_tree::Loop()
+void  genrp_tree::Loop()
 {
 //   In a ROOT session, you can do:
-//      root> .L genrp_tree.C
-//      root> genrp_tree t
+//      root> .L T.C
+//      root> T t
 //      root> t.GetEntry(12); // Fill t data members with entry number 12
 //      root> t.Show();       // Show values of entry 12
 //      root> t.Show(16);     // Read and show values of entry 16
