@@ -1484,7 +1484,7 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
 
   //-----------------------------------------------------------------------------------------------------------------------------
   
-  gSystem->Exec("pdfunite  temp*.pdf ~/public_html/Sim_GEnRP.pdf");  
+  gSystem->Exec("pdfunite  temp*.pdf Sim_GEnRP.pdf");  
   gSystem->Exec("rm  temp*.pdf");  
   
   if( writeOut ) {
