@@ -27,10 +27,10 @@ PolNucleonRotate::PolNucleonRotate( G4int verbose )
     fAyFactor[i] = 1.0;
   }
 
-  fAyModel[EppEl]     = EAyLadygin;
-  fAyModel[EppInel]   = EAyAzhgirey;
-  fAyModel[EnpCEEl]   = EAyCE;
-  fAyModel[EnpCEInel] = EAyCE;
+   fAyModel[EppEl]     = EAyLadygin;
+   fAyModel[EppInel]   = EAyAzhgirey;
+   fAyModel[EnpCEEl]   = EAyCE;
+   fAyModel[EnpCEInel] = EAyCE;
 
   fVerbose = verbose;
   ftmin = 0.0;
@@ -53,6 +53,7 @@ GetPolarisedRotation(const G4DynamicParticle *primPart,
     return 0.0;
 
   G4ThreeVector Pol(primPart->GetPolarization());
+  //  Pol.set( 1.0, 0.0, 1.0 );
   *PolNN = Pol;
   
   G4double Pt=sqrt(Pol.x()*Pol.x()+Pol.y()*Pol.y()); //transverse polarisation

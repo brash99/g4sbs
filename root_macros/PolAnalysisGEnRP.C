@@ -164,8 +164,9 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
   Double_t pdiff_cut = 0.2;
   Double_t hcalE_min = 0.07; 
   
-  Double_t Mp = 0.93827;  
-  Double_t Mn = 0.93957;  
+  Double_t Mp   = 0.93827;  
+  Double_t Mn   = 0.93957;  
+  Double_t mu_p = 2.79284734462;
 
   TFile* fout{NULL};
   TDirectory *dir{NULL};
@@ -289,16 +290,19 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
   TH1F* hpol_sclnp     = new TH1F("hpol_sclnp","",50,0, 0.01);
   TH2F* hpol_zclnp     = new TH2F("hpol_zclnp","",50,3.15, 5.15,50,0,30);
 
-  TH1F* hpol_thpr      = new TH1F("hpol_thpr","",50,30,120);
-  TH1F* hpol_phprp     = new TH1F("hpol_phprp","",nphibins,-180,180);
-  TH1F* hpol_phprm     = new TH1F("hpol_phprm","",nphibins,-180,180);
+  TH1F* hpol_Ptp       = new TH1F("hpol_Ptp","",50,-0.5,0.5);
+  TH1F* hpol_Plp       = new TH1F("hpol_Plp","",50,0.2,1.2);
+  TH1F* hpol_Ptn       = new TH1F("hpol_Ptn","",50,0.2,1.2);
+  TH1F* hpol_Pln       = new TH1F("hpol_Pln","",50,-0.5,0.5);
 
-  TH1F* hpol_Ptp       = new TH1F("hpol_Ptp","",50,-1,1);
-  TH1F* hpol_Plp       = new TH1F("hpol_Plp","",50,-1,1);
-  TH1F* hpol_Sxp       = new TH1F("hpol_Sxp","",50,-1,1);
-  TH1F* hpol_Syp       = new TH1F("hpol_Syp","",50,-1,1);
-  TH1F* hpol_Ptn       = new TH1F("hpol_Ptn","",50,-1,1);
-  TH1F* hpol_Pln       = new TH1F("hpol_Pln","",50,-1,1);
+  TH1F* hpol_Szp       = new TH1F("hpol_Szp","",50,0.2,1.2);
+  TH1F* hpol_Syp       = new TH1F("hpol_Syp","",50,-0.5,0.5);
+  TH1F* hpol_Szn       = new TH1F("hpol_Szn","",50,0.2,1.2);
+  TH1F* hpol_Syn       = new TH1F("hpol_Syn","",50,-0.5,0.5);
+  TH1F* hpol_SxpFP     = new TH1F("hpol_SxpFP","",50,-1.2,1.2);
+  TH1F* hpol_SypFP     = new TH1F("hpol_SypFP","",50,-0.5,0.5);
+
+  TH1F* hpol_Chip      = new TH1F("hpol_Chip","",50,0.,90.);
 
   //-----------------------------------------------------------------------------------------------------------------------------
 
@@ -311,7 +315,13 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
   th_bb  *= M_PI/180.;
   th_sbs *= M_PI/180.;
 
-  Int_t helicity{0}, nQEp{0}, nQEn{0}, npp{0}, nnp_cx{0}, nppc{0}, nnp_cxc{0};
+  Int_t helicity{0}, nQEp{0}, nQEn{0}, npp{0}, nnp_cx{0}, nppc{0}, nnp_cxc{0}, npr{0};
+  Int_t nprLm{0}, nprRm{0}, nprTm{0}, nprBm{0}, nprLp{0}, nprRp{0}, nprTp{0}, nprBp{0};
+
+  TVector3 SBS_zaxis( -sin(th_sbs), 0, cos(th_sbs) );
+  TVector3 SBS_xaxis(0, -1, 0 );
+  TVector3 SBS_yaxis = SBS_zaxis.Cross(SBS_xaxis).Unit();
+  
 
   //-----------------------------------------------------------------------------------------------------------------------------
 
@@ -720,9 +730,12 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
 	
 	hpol_Ptp->Fill( T->ev_Pt );
 	hpol_Plp->Fill( T->ev_Pl );
-	
-	hpol_Sxp->Fill( (*(T->Harm_CEPolFront_Track_Sx))[0] );
-	hpol_Syp->Fill( (*(T->Harm_CEPolFront_Track_Sy))[0] );
+
+	hpol_Szp->Fill( T->ev_Sz );
+	hpol_Syp->Fill( T->ev_Sy );
+
+ 	hpol_SxpFP->Fill( (*(T->Harm_CEPolFront_Track_Sx))[0] );
+ 	hpol_SypFP->Fill( (*(T->Harm_CEPolFront_Track_Sy))[0] );
       }
       
       anaf_x =  (*(T->Harm_CEPolFront_Track_X))[0] + (polana_dist - polfgem_dist) * (*(T->Harm_CEPolFront_Track_Xp))[0];
@@ -773,7 +786,22 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
       
       bool conetestpp = conetest( front_vtx, in_track, thsc, zclose, polrgem_dist );
 
-      if( thsc >= 5 && sclose < 0.1 ) {
+      TVector3 ppvect_global(T->ev_npx, T->ev_npy, T->ev_npz );
+      TVector3 ppunit_global = ppvect_global.Unit();
+      
+      TVector3 ppunit_sbs( ppunit_global.Dot( SBS_xaxis ),
+			   ppunit_global.Dot( SBS_yaxis ),
+			   ppunit_global.Dot( SBS_zaxis ) );
+
+      double thetabend = acos( in_track.Dot( ppunit_sbs ) );
+      double pp        = T->ev_np;
+      double gamma     = sqrt(1.+pow(pp/Mp,2));
+      double chi       = gamma*(mu_p - 1.0)*thetabend;
+      double sinchi    = sin(chi);
+
+      hpol_Chip->Fill( chi * 180/M_PI );
+
+      if( thsc >= 5 && sclose < 0.1 &&  fabs(phsc)<180 ) { 
      	nppc++;
 	hpol_thppc->Fill ( thsc , weight);
 	hpol_tppc->Fill( t , weight);
@@ -809,8 +837,12 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
     if( T->Harm_CEPolFront_Track_ntracks == 0 && T->Harm_CEPolRear_Track_ntracks == 1 ) {
       
       if( helicity == 1  && T->ev_fnucl == 0 ) {
+
 	hpol_Ptn->Fill( T->ev_Pt );
 	hpol_Pln->Fill( T->ev_Pl );
+
+	hpol_Szn->Fill( T->ev_Sz );
+	hpol_Syn->Fill( T->ev_Sy );
       }
       
       anar_x    =  (*(T->Harm_CEPolRear_Track_X))[0] + (polana_dist - polrgem_dist) * (*(T->Harm_CEPolRear_Track_Xp))[0];
@@ -857,7 +889,7 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
       
       bool conetestnp = conetest( anaf_vtx, in_track, thsc, zclose, polrgem_dist );
 
-      if( thsc >= 0 && sclose < 0.1 && fabs(phsc)<160 ) { 
+      if( thsc >= 0 && sclose < 0.2 && fabs(phsc)<140 ) { 
 	nnp_cxc++;
 	
 	hpol_thnp_cxc->Fill ( thsc , weight);
@@ -1116,8 +1148,8 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
     tex->SetTextSize(0.065);
     tex->Draw();
 
-    Double_t Ptp = hpol_Ptp->GetMean();
-    Double_t Plp = hpol_Plp->GetMean();
+    Double_t Ptp = hpol_Syp->GetMean();
+    Double_t Plp = hpol_Szp->GetMean();
     tex = new TLatex( 0.08, 0.6, Form("Pt = %3.2f (#rightarrow Py^{FP})", Ptp)); 
     tex->SetNDC(1);
     tex->SetTextFont(42);
@@ -1125,7 +1157,7 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
     tex->SetTextSize(0.065);
     tex->Draw();
 
-    tex = new TLatex( 0.08, 0.5, Form("Pt = %3.2f (#rightarrow Px^{FP})", Plp)); 
+    tex = new TLatex( 0.08, 0.5, Form("Pt = %3.2f (#rightarrow Px^{FP})", Plp));
     tex->SetNDC(1);
     tex->SetTextFont(42);
     tex->SetTextColor(2);
@@ -1168,12 +1200,20 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
     hpol_phppp->Draw("same");
 
     cpolpp->cd(7);
+    TH1F* hsum  = new TH1F("hsum","",nphibins,-180,180);
+    TH1F* hdiff = new TH1F("hdiff","",nphibins,-180,180);
     TH1F* hasym = new TH1F("hasym","",nphibins,-180,180);
-    Double_t n2plus  = hpol_phppp->Integral(0,nphibins);
-    n2plus = nphibins/(2*n2plus);
-    Double_t n2minus = hpol_phppm->Integral(0,nphibins);
-    n2minus = nphibins/(2*n2minus);
-    hasym->Add(hpol_phppp,hpol_phppm,n2plus,-n2minus);
+    hsum->Sumw2();
+    hdiff->Sumw2();
+    hasym->Sumw2();
+    hsum->Add( hpol_phppp, hpol_phppm );
+    hdiff->Add( hpol_phppp, hpol_phppm, 1, -1 );
+    hasym->Divide( hdiff, hsum, 1, 1 );
+//     Double_t n2plus  = hpol_phppp->Integral(0,nphibins);
+//     n2plus = nphibins/(n2plus);
+//     Double_t n2minus = hpol_phppm->Integral(0,nphibins);
+//     n2minus = nphibins/(n2minus);
+//     hasym->Add(hpol_phppp,hpol_phppm,n2plus,-n2minus);
     hasym->Draw("E1");
     hasym->SetMarkerStyle(21);
     hasym->SetMarkerColor(kBlue);
@@ -1181,7 +1221,7 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
     hasym->SetMarkerSize(0.5);
     hasym->GetXaxis()->SetTitle("#varphi (degrees)");
     hasym->GetYaxis()->SetTitle("Asymmetry");
-    hasym->GetYaxis()->SetRangeUser(-1,1);
+    hasym->GetYaxis()->SetRangeUser(-1.,1.);
     
     TF1 *fit = new TF1("fit", "[0]*sin(x/57.29578)-[1]*cos(x/57.29578)",-180,180);
     hasym->Fit(fit,"","",-180,180);
@@ -1191,12 +1231,14 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
     Double_t Pxpp  = fit->GetParameter(0);
     Double_t ePxpp = fit->GetParError(0);
 
+    Double_t Chipp = hpol_Chip->GetMean();
+
     cpolpp->cd(8);
     Double_t tpp[]   = { -1, hpol_tppc->GetMean(), 2 };
     Double_t etpp[]  = { 0, 0, 0, 0 };
     
-    Double_t Aypp[]  = { -3, fabs(Pypp/Ptp), -3 };
-    Double_t eAypp[] = { 0, fabs(ePypp/Ptp), 0 };
+    Double_t Aypp[]  = { -3, fabs(Pxpp/Plp/sin(Chipp*M_PI/180)), -3 };
+    Double_t eAypp[] = { 0, fabs(ePxpp/Plp/sin(Chipp*M_PI/180)), 0 };
 
     TGraphErrors* gAypp = new TGraphErrors( 3, tpp, Aypp, etpp, eAypp );
     gAypp->SetMarkerColor( 4 );
@@ -1205,7 +1247,7 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
     gAypp->SetMarkerSize( 1.5 );
     gAypp->Draw("AP");
     gAypp->GetXaxis()->SetRangeUser( 0, 0.15 );
-    gAypp->GetYaxis()->SetRangeUser( 0, 1.5 );
+    gAypp->GetYaxis()->SetRangeUser( 0, 1.0 );
     gAypp->GetXaxis()->SetTitle( "|t| [GeV]");
     gAypp->GetYaxis()->SetTitle( "Ay");
 
@@ -1239,7 +1281,7 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
     tex->SetTextSize(0.065);
     tex->Draw();
 
-    Double_t Chipp = (180./M_PI)*asin(fabs(Pxpp/Plp));
+    Double_t PxpFP = hpol_SxpFP->GetMean();
     tex = new TLatex( 0.08, 0.0, Form("Chi = %3.1f degrees", Chipp));
     tex->SetNDC(1);
     tex->SetTextFont(42);
@@ -1272,8 +1314,8 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
 
     cout << Form("np->pn (ChEx) efficiency = %3.2f %%", 100.*effnp) << endl;
 
-    Double_t Ptn = hpol_Ptn->GetMean();
-    Double_t Pln = hpol_Pln->GetMean();
+    Double_t Ptn = hpol_Syn->GetMean();
+    Double_t Pln = hpol_Szn->GetMean();
     tex = new TLatex( 0.08, 0.6, Form("Pt = %3.2f (#rightarrow Py^{FP})", Ptn)); 
     tex->SetNDC(1);
     tex->SetTextFont(42);
@@ -1281,7 +1323,7 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
     tex->SetTextSize(0.065);
     tex->Draw();
 
-    tex = new TLatex( 0.08, 0.5, Form("Pl = %3.2f (#rightarrow Px^{FP})", Pln)); 
+    tex = new TLatex( 0.08, 0.5, Form("Pl = %3.2f (#rightarrow Px^{FP})", Pln));
     tex->SetNDC(1);
     tex->SetTextFont(42);
     tex->SetTextColor(2);
@@ -1344,35 +1386,47 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
     fOutFilePhM.close();
 
     cpolnp->cd(7);
-    TH1F* hasym1cx = new TH1F("hasym1cx","",nphibins,-180,180);
-    n2plus  = hpol_phnp_cxp->Integral(0,nphibins);
-    n2plus = nphibins/(2*n2plus);
-    n2minus = hpol_phnp_cxm->Integral(0,nphibins);
-    n2minus = nphibins/(2*n2minus);
-    hasym1cx->Add(hpol_phnp_cxp,hpol_phnp_cxm,n2plus,-n2minus);
-    hasym1cx->Draw("E1");
-    hasym1cx->SetMarkerStyle(21);
-    hasym1cx->SetMarkerColor(kBlue);
-    hasym1cx->SetLineColor(kBlue);
-    hasym1cx->SetMarkerSize(0.5);
-    hasym1cx->GetXaxis()->SetTitle("#varphi (degrees)");
-    hasym1cx->GetYaxis()->SetTitle("Asymmetry");
-    hasym1cx->GetYaxis()->SetRangeUser(-1,1);
+    TH1F* hsumcx  = new TH1F("hsumcx","",nphibins,-180,180);
+    TH1F* hdiffcx = new TH1F("hdiffcx","",nphibins,-180,180);
+    TH1F* hasymcx = new TH1F("hasymcx","",nphibins,-180,180);
+    hsumcx->Sumw2();
+    hdiffcx->Sumw2();
+    hasymcx->Sumw2();
+    hsumcx->Add( hpol_phnp_cxp, hpol_phnp_cxm );
+    hdiffcx->Add( hpol_phnp_cxp, hpol_phnp_cxm, 1, -1 );
+    hasymcx->Divide( hdiffcx, hsumcx, 1, 1 );
+
+//     TH1F* hasym1cx = new TH1F("hasym1cx","",nphibins,-180,180);
+//     n2plus  = hpol_phnp_cxp->Integral(0,nphibins);
+//     n2plus = nphibins/(n2plus);
+//     n2minus = hpol_phnp_cxm->Integral(0,nphibins);
+//     n2minus = nphibins/(n2minus);
+//     hasym1cx->Add(hpol_phnp_cxp,hpol_phnp_cxm,n2plus,-n2minus);
+    hasymcx->Draw("E1");
+    hasymcx->SetMarkerStyle(21);
+    hasymcx->SetMarkerColor(kBlue);
+    hasymcx->SetLineColor(kBlue);
+    hasymcx->SetMarkerSize(0.5);
+    hasymcx->GetXaxis()->SetTitle("#varphi (degrees)");
+    hasymcx->GetYaxis()->SetTitle("Asymmetry");
+    hasymcx->GetYaxis()->SetRangeUser(-1.,1.);
 
     TF1 *fitcx = new TF1("fitcx", "[0]*sin(x/57.29578)-[1]*cos(x/57.29578)",-180,180);
-    hasym1cx->Fit(fitcx,"","",-180,180);
+    hasymcx->Fit(fitcx,"","",-180,180);
 
     Double_t Pynp  = fitcx->GetParameter(1);
     Double_t ePynp = fitcx->GetParError(1);
     Double_t Pxnp  = fitcx->GetParameter(0);
     Double_t ePxnp = fitcx->GetParError(0);
 
+    Double_t Chinp = Chipp * 1.9/2.9;//85.6;
+
     cpolnp->cd(8);
     Double_t tnp[]   = { -1, hpol_tnp_cxc->GetMean(), 2 };
     Double_t etnp[]  = { 0, 0, 0 };
     
-    Double_t Aynp[]  = { -3, fabs(Pynp/Ptn), -3 };
-    Double_t eAynp[] = { 0, fabs(ePynp/Ptn), 0 };
+    Double_t Aynp[]  = { -3, fabs(Pxnp/Pln/sin(Chinp*M_PI/180)), -3 };
+    Double_t eAynp[] = { 0, fabs(ePxnp/Pln/sin(Chinp*M_PI/180)), 0 };
 
     TGraphErrors* gAynp = new TGraphErrors( 3, tnp, Aynp, etnp, eAynp );
     gAynp->SetMarkerColor( 4 );
@@ -1381,7 +1435,7 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
     gAynp->SetMarkerSize( 1.5 );
     gAynp->Draw("AP");
     gAynp->GetXaxis()->SetRangeUser( 0, 0.15 );
-    gAynp->GetYaxis()->SetRangeUser( 0, 1.5 );
+    gAynp->GetYaxis()->SetRangeUser( 0, 1. );
     gAynp->GetXaxis()->SetTitle( "|t| [GeV]");
     gAynp->GetYaxis()->SetTitle( "Ay");
 
@@ -1416,7 +1470,6 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
     tex->SetTextSize(0.065);
     tex->Draw();
     
-    Double_t Chinp = (180./M_PI)*asin(fabs(Pxnp/Pln));
     tex = new TLatex( 0.08, 0.0, Form("Chi = %3.1f degrees", Chinp));
     tex->SetNDC(1);
     tex->SetTextFont(42);
@@ -1425,6 +1478,7 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
     tex->Draw();
 
     cpolnp->Print("temp_polnp.pdf");
+
 
   }
 
