@@ -329,7 +329,7 @@ void PolAnalysisGEnRP( const char *setupfilename="in.txt", Long64_t nentries = 5
 
     T->GetEntry(ev);
     
-    if( ev%10000 == 0 )
+    if( ev%100 == 0 )
       cout << ev << endl;
 
     double weight = T->ev_sigma * T->ev_solang * Lumi / Ngen_total;
