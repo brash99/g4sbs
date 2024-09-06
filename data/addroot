@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export homedir=$HOME
-export datadir=$homedir/g4sbs_install/data
+export datadir=$homedir/g4sbs/data
 
 export OUTPUT_FILE_NUMBER=$1
 export START_RUN=$2
