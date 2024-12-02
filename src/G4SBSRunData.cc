@@ -7,6 +7,7 @@
 #include <sstream>
 #include <errno.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "TObjArray.h"
 #include "TObjString.h"
@@ -47,7 +48,7 @@ void G4SBSRunData::Init(){
     fRICHdist = 5.5*meter;
     fSBSTrackerdist = 4.5*meter;
     fSBSTrackerPitch = 0.0*degree;
-    
+
     fFileName = "";
     strcpy(fExpType, "default");
     strcpy(fGenName, "default");
@@ -63,10 +64,10 @@ void G4SBSRunData::Init(){
 }
 
 // void G4SBSRunData::Print() const { Print(NULL); }
-void G4SBSRunData::Print() const { 
-   // print data to file 
-   std::vector<std::string> line; 
-   char msg[200]; 
+void G4SBSRunData::Print() const {
+   // print data to file
+   std::vector<std::string> line;
+   char msg[200];
    sprintf(msg,"Run_path,%s",fRunPath);
    line.push_back(msg);
    sprintf(msg,"N_generated,%ld",fNthrown);
@@ -108,14 +109,14 @@ void G4SBSRunData::Print() const {
    sprintf(msg,"Max_weight_for_rej_sampling,%.5g",fMaxWeight);
    line.push_back(msg);
 
-   const int NL = line.size(); 
+   const int NL = line.size();
 
    // constructing the name of resulting CSV file
    TString csvtemp = fFileName;
    csvtemp.ReplaceAll(".root", ".csv");
 
    std::ofstream outfile;
-   outfile.open(csvtemp.Data()); 
+   outfile.open(csvtemp.Data());
    if( outfile.fail() ){
      std::cout << "[G4SBSRunData::Print]: Cannot open the file: " << csvtemp << std::endl;
    }else{
@@ -150,7 +151,7 @@ void G4SBSRunData::Print(Option_t *) const {
     printf("SBS tracker distance = %8.5g meters\n", fSBSTrackerdist );
     printf("SBS tracker pitch angle = %8.5g degrees\n", fSBSTrackerPitch/degree );
     printf("Max weight for rejection sampling = %8.5g (diff. xsec units) \n", fMaxWeight );
-    
+
     printf("Field maps:\n");
     for( unsigned int i = 0; i < fMagData.size(); i++ ){
 	printf("\t%s\n", fMagData[i].filename);
@@ -179,7 +180,7 @@ void G4SBSRunData::Print(Option_t *) const {
 TString G4SBSRunData::FindMacro( const char *fn ){
 
   struct stat fdata_temp;
-  
+
   bool found_file = (stat( fn, &fdata_temp ) == 0 );
 
   if( found_file ){
@@ -199,7 +200,7 @@ TString G4SBSRunData::FindMacro( const char *fn ){
     }
 
     tokens->Delete();
-    
+
     return TString(fn);
   }
 }
@@ -207,13 +208,13 @@ TString G4SBSRunData::FindMacro( const char *fn ){
 void G4SBSRunData::SetMacroFile( const char *fn ){
 
   TString fullpathname = FindMacro( fn );
-  
+
   fMacro = G4SBSTextFile( fullpathname.Data() );
   FindExternalMacros( fMacro );
 }
 
 void G4SBSRunData::SetPreInitMacroFile( const char *fn ){
-  
+
   TString fullpathname = FindMacro( fn );
 
   fPreInitMacro = G4SBSTextFile( fullpathname.Data() );
@@ -225,7 +226,7 @@ void G4SBSRunData::FindExternalMacros(G4SBSTextFile macro){
   std::istringstream macro_string(macro.GetBuffer());
 
   //  G4UImanager * UImanager = G4UImanager::GetUIpointer();
-  
+
   // Command which calls external macros (this is what we are trying to find)
   std::string cmd("/control/execute ");
   std::string line;
@@ -238,11 +239,11 @@ void G4SBSRunData::FindExternalMacros(G4SBSTextFile macro){
       if(c > p ) { // A comment before the cmd was not found, so store macro
 
 	//TString macrofilename = line.substr(p+cmd.length(),line.length()).c_str();
-	
+
 	TString fullpathname = FindMacro( line.substr(p+cmd.length(),line.length()).c_str() );
-	
+
 	G4SBSTextFile ext_macro( fullpathname.Data() );
-	
+
         // G4SBSTextFile ext_macro(
         //     line.substr(p+cmd.length(),line.length()).c_str());
         fExternalMacros.push_back(ext_macro);
